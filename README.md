@@ -1,8 +1,20 @@
-# Battleship (Python / Tkinter)
+# Battleship AI
 
-A local Battleship game built in Python with Tkinter. It supports two-player pass-and-play, AI opponents, random shots, limited-use 3x3 special shots, end-game stats, and replay flow.
+A Battleship game built with Python and Tkinter. The project supports local pass-and-play, AI opponents, random shots, limited-use special attacks, end-game stats, replay flow, and optional wallpaper support.
 
-## Project Layout
+## Overview
+
+This project is a multi-screen Battleship app with a shared game state and separated game rules. Players can:
+
+- choose a fleet size from 1 to 5 ships
+- play local two-player mode on one screen
+- play against an Easy or Medium AI
+- use a `RANDOM` shot button
+- use a limited `SPECIAL` 3x3 area shot
+- forfeit from the menu during battle
+- review final stats on the win screen
+
+## Project Structure
 
 ```text
 Battleship-AI/
@@ -22,40 +34,65 @@ Battleship-AI/
     └── test_rules.py
 ```
 
+## Current Features
+
+- Welcome screen with local two-player, AI Easy, and AI Medium start options
+- Placement screen with active-player highlighting and hidden inactive board
+- Ship placement in required order from length `1` through selected fleet size
+- Orientation toggle button plus `H` / `V` keyboard shortcuts during placement
+- Ship removal by clicking an already placed ship
+- Battle screen with:
+  - normal fire
+  - `RANDOM` fire on an unknown cell
+  - `SPECIAL` 3x3 blast with limited uses per player
+  - hidden enemy board
+  - turn handoff blackout for local play
+  - AI turn flow for computer games
+- Scoreboard with shots, hits, misses, ships remaining, and per-ship damage counters
+- Win screen with summary stats and replay support
+- Menu support for forfeit and wallpaper controls
+- Optional wallpaper loading when Pillow is installed
+
+## What We Added And Fixed
+
+Recent improvements included in the current version:
+
+- Added a user-triggered `RANDOM` shot button
+- Added a limited-use `SPECIAL` 3x3 shot
+- Cleaned up the main UI so screens are more consistent and readable
+- Improved placement feedback so the active player is clearer
+- Improved battle controls so button states are more consistent
+- Added safer transition handling so delayed screen callbacks do not leak into replay or screen changes
+- Fixed wallpaper handling so the app still runs even if Pillow is not installed
+- Added automated unit tests for rules and game-state reset behavior
+- Updated project documentation and manual validation coverage
+
 ## Game Flow
 
-1. Start the app from `main.py`.
-2. Choose a fleet size from 1 to 5 ships.
-3. Start either:
-   - local two-player mode
-   - AI Easy
-   - AI Medium
-4. Place ships in order from length 1 up to the chosen fleet size.
-5. Battle using:
-   - normal single-cell fire
-   - `RANDOM` to fire at a random unknown cell
-   - `SPECIAL` for a limited 3x3 shot
-6. Win by sinking every enemy ship or by opponent forfeit.
-7. Review final stats and choose replay or exit.
+1. Launch the app with `python3 main.py`.
+2. Choose the number of ships.
+3. Start either local two-player mode or an AI mode.
+4. Place ships in order from size `1` up to the selected fleet size.
+5. Enter battle mode and attack using normal shots, `RANDOM`, or `SPECIAL`.
+6. Sink all opponent ships or win by forfeit.
+7. Review the win screen and choose `Play Again` or `Exit`.
 
-## Features
+## Controls
 
-- Shared `GameState` for placement, battle, AI mode, and special-shot counters
-- Hidden-board pass-and-play flow with handoff blackout
-- Easy and medium AI opponents
-- Random shot button
-- Limited-use special 3x3 shot
-- Forfeit menu action
-- Final accuracy and ship-damage stats
-- Optional wallpaper support when Pillow is installed
+- `Esc`: exit fullscreen
+- `H` / `V`: switch placement orientation while on the placement screen
+- `RANDOM`: automatically fire at a random unknown cell
+- `SPECIAL`: arm or cancel the 3x3 special attack
+- `Forfeit` menu item: end the current battle and award the win to the opponent
+- `Choose Wallpaper` / `Clear Wallpaper`: update the background when Pillow is available
 
-## Run the Game
+## How To Run
 
 ```bash
 python3 main.py
 ```
 
-## Run Tests
+## How To Run Tests
 
 ```bash
 python3 -m unittest
@@ -63,21 +100,47 @@ python3 -m unittest
 
 ## Manual Validation Checklist
 
-- Start a local two-player game and complete placement for both players.
-- Confirm only the active player board is visible during placement.
-- Verify invalid ship placement shows an error and does not change the board.
-- Remove and replace a placed ship during placement.
-- Start an AI Easy game and confirm player 2 ships are auto-placed.
-- Start an AI Medium game and confirm the AI continues taking turns without exposing hidden boards.
-- Use `RANDOM` and confirm it fires only at unknown cells.
-- Arm `SPECIAL`, preview the 3x3 area, fire it, and confirm the counter decreases.
-- Exhaust all special shots and confirm the special control disables cleanly.
-- Trigger a forfeit during battle and confirm the win screen appears with stats.
-- Finish a game normally and confirm replay returns to the welcome screen without stale delayed transitions.
-- If Pillow is installed, choose and clear a wallpaper.
-- If Pillow is not installed, confirm the app still runs and wallpaper actions fail gracefully.
+- Start a local two-player game and complete both placement turns.
+- Confirm only the active player’s board is visible during placement.
+- Verify invalid ship placement shows an error and does not modify the board.
+- Remove a placed ship and place it again in a new location.
+- Start an AI Easy game and confirm player 2 ships are auto-generated.
+- Start an AI Medium game and confirm the AI takes turns correctly.
+- Use `RANDOM` and confirm it only fires at unknown cells.
+- Arm `SPECIAL`, preview the blast area, fire it, and confirm the counter decreases.
+- Use all special shots and confirm the special control disables correctly.
+- Trigger a forfeit during battle and confirm the correct win screen appears.
+- Finish a full game and confirm replay returns to the welcome screen cleanly.
+- Confirm no stale delayed transitions occur after replay or forfeit.
+- If Pillow is installed, choose a wallpaper and clear it.
+- If Pillow is not installed, confirm the app still works and wallpaper actions fail gracefully.
+
+## Automated Test Coverage
+
+The current unit tests cover:
+
+- `fire_shot()` miss, hit, sink, and already-fired cases
+- `fire_area_shot()` center shots, edge clipping, and already-fired accounting
+- `ships_remaining()`
+- `GameState.reset_for_new_game()`
 
 ## Notes
 
 - Tkinter is included with most Python installations.
-- Pillow is optional and only needed for wallpaper loading/resizing.
+- Pillow is optional and only needed for wallpaper image support.
+- The project currently favors manual GUI validation plus automated rule/state tests.
+
+## Future Implementations
+
+Potential next improvements for the project:
+
+- Hard AI with stronger search and targeting strategy
+- Sound effects for hits, misses, sinks, and victory
+- Better animations and transitions between turns and screens
+- Smarter battle summaries, including move history
+- Save/load game state
+- Adjustable game settings for special-shot limits and turn timing
+- Keyboard targeting shortcuts during battle
+- Optional ship-placement randomizer for the player
+- More robust GUI-level smoke tests
+- Packaging the game as a desktop app build

@@ -25,8 +25,14 @@ MIN_SHIPS = 1
 MAX_SHIPS = 5
 GRID_SIZE = 10
 
+SCREEN_BG = "#e8f1f8"
+CARD_BG = "#f8fbfe"
+PANEL_BG = "#dfeaf3"
+TEXT_DARK = "#102a43"
+TEXT_MUTED = "#486581"
+
 ACTIVE_BG = "#ffffff"
-COVER_BG = "#2b2b2b"
+COVER_BG = "#32475b"
 
 P1_SHIP_BG = "#2ecc71"
 P2_SHIP_BG = "#e67e22"
@@ -37,27 +43,59 @@ HIT_BG = "#c0392b"
 HIGHLIGHT_BG = "#f1c40f"
 TURN_DELAY_MS = 3000
 
+TITLE_FONT = ("Arial", 58, "bold")
+SECTION_FONT = ("Arial", 24, "bold")
+STATUS_FONT = ("Arial", 21, "bold")
+BODY_FONT = ("Arial", 16)
+SMALL_FONT = ("Arial", 13)
+BUTTON_FONT = ("Arial", 16, "bold")
+BIG_RESULT_FONT = ("Arial", 34, "bold")
+
+BUTTON_WIDTH = 18
+BATTLE_BUTTON_WIDTH = 12
+BOARD_TITLE_FONT = ("Arial", 20, "bold")
+BOARD_LABEL_FONT = ("Arial", 16, "bold")
+
+PRIMARY_BTN_BG = "#16324f"
+SECONDARY_BTN_BG = "#1f6f8b"
+ACCENT_BTN_BG = "#b85c38"
+BUTTON_FG = "#ffffff"
+
+RESULT_COLORS = {
+    "neutral": TEXT_DARK,
+    "good": "#1b5e20",
+    "warn": "#8d6e00",
+    "bad": "#b42318",
+}
+
 
 class WelcomeScreen(tk.Frame):  # Screen 1: pick number of ships, then move to placement
     def __init__(self, parent, app):
-        super().__init__(parent)  # Initialize Tkinter Frame base class
+        super().__init__(parent, bg=SCREEN_BG)  # Initialize Tkinter Frame base class
         self.app = app  # Store reference to the main App (lets us access state + screen switching)
 
-        self.bg_label = tk.Label(self, bd=0)
+        self.bg_label = tk.Label(self, bd=0, bg="#0b1f33")
         self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.refresh_wallpaper()
 
-        inner = tk.Frame(self)  # Inner frame holding the actual widgets
-        inner.place(relx=0.5, rely=0.45, anchor="center")  # Center-ish placement on screen
+        inner = tk.Frame(self, bg=CARD_BG, padx=36, pady=28)
+        inner.place(relx=0.5, rely=0.5, anchor="center")
 
-        tk.Label(inner, text="Battleship", font=("Arial", 62, "bold")).pack(pady=(0, 18))  # Big title
-        tk.Label(inner, text="Choose how many ships you want (1–5)", font=("Arial", 18)).pack(pady=(0, 12))  # Subtitle
+        tk.Label(inner, text="Battleship", font=TITLE_FONT, bg=CARD_BG, fg=TEXT_DARK).pack(pady=(0, 12))
+        tk.Label(
+            inner,
+            text="Choose your fleet size, then start a local duel or battle the AI.",
+            font=BODY_FONT,
+            bg=CARD_BG,
+            fg=TEXT_MUTED,
+            justify="center",
+        ).pack(pady=(0, 18))
 
         self.choice_var = tk.IntVar(value=MIN_SHIPS)  # Stores the selected number of ships (default = 1)
 
-        row = tk.Frame(inner)  # Row container for label + dropdown
+        row = tk.Frame(inner, bg=CARD_BG)  # Row container for label + dropdown
         row.pack(pady=(0, 12))  # Add spacing under it
-        tk.Label(row, text="Ships:", font=("Arial", 18)).pack(side="left", padx=8)  # Label next to dropdown
+        tk.Label(row, text="Ships:", font=BODY_FONT, bg=CARD_BG, fg=TEXT_DARK).pack(side="left", padx=8)
 
         ttk.Combobox(  # Dropdown for ship count selection
             row,
@@ -71,26 +109,56 @@ class WelcomeScreen(tk.Frame):  # Screen 1: pick number of ships, then move to p
         tk.Label(  # Small explanation text about ship sizes
             inner,
             text="Ship sizes are based on this number.\nExample: 3 ships means 1x1, 1x2, 1x3.",
-            font=("Arial", 14),
-            fg="#444",  # Gray text color
+            font=SMALL_FONT,
+            fg=TEXT_MUTED,
+            bg=CARD_BG,
             justify="center",  # Center align multi-line text
         ).pack(pady=(0, 18))  # Add spacing below text
 
-        tk.Button(inner, text="Continue →", width=18, font=("Arial", 16, "bold"), command=self.on_continue).pack()  # Button that triggers on_continue()
+        tk.Button(
+            inner,
+            text="Local Two-Player",
+            width=BUTTON_WIDTH,
+            font=BUTTON_FONT,
+            bg=PRIMARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=PRIMARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
+            command=self.on_continue,
+        ).pack()
+
+        tk.Label(
+            inner,
+            text="Or start against the computer:",
+            font=SMALL_FONT,
+            bg=CARD_BG,
+            fg=TEXT_MUTED,
+        ).pack(pady=(18, 8))
 
         tk.Button(
             inner,
-            text="Easy Mode",
-            width=18,
-            font=("Arial", 16, "bold"),
+            text="AI Easy",
+            width=BUTTON_WIDTH,
+            font=BUTTON_FONT,
+            bg=SECONDARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=SECONDARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
             command=lambda: self.on_ai_mode("easy"),
         ).pack(pady=(12, 0))
 
         tk.Button(
             inner,
-            text="Medium Mode",
-            width=18,
-            font=("Arial", 16, "bold"),
+            text="AI Medium",
+            width=BUTTON_WIDTH,
+            font=BUTTON_FONT,
+            bg=ACCENT_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=ACCENT_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
             command=lambda: self.on_ai_mode("medium"),
         ).pack(pady=(6, 0))
 
@@ -144,23 +212,30 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
     """
 
     def __init__(self, parent, app):
-        super().__init__(parent)  # Initialize Tkinter Frame base class
+        super().__init__(parent, bg=SCREEN_BG)  # Initialize Tkinter Frame base class
         self.app = app  # Store reference to the main App (state + screen switching)
+        self._transition_job = None
 
-        root = tk.Frame(self)  # Root container for this screen
+        root = tk.Frame(self, bg=SCREEN_BG)  # Root container for this screen
         root.pack(fill="both", expand=True, padx=30, pady=20)  # Fill screen with padding
 
-        top = tk.Frame(root)  # Top bar container (status + buttons)
+        top = tk.Frame(root, bg=SCREEN_BG)  # Top bar container (status + buttons)
         top.pack(fill="x", pady=(0, 15))  # Stretch horizontally + spacing below
 
-        self.status_lbl = tk.Label(top, text="", font=("Arial", 22, "bold"))  # Shows placement instructions
+        self.status_lbl = tk.Label(top, text="", font=STATUS_FONT, bg=SCREEN_BG, fg=TEXT_DARK)
         self.status_lbl.pack(side="left")  # Align left
 
         self.orient_btn = tk.Button(  # Button to toggle horizontal/vertical placement
             top,
-            text="Toggle (H)",  # Default orientation display
+            text="Orientation: H",  # Default orientation display
             command=self.toggle_orientation,  # Calls toggle function
             width=14,  # Button width
+            font=BUTTON_FONT,
+            bg=PRIMARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=PRIMARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
         self.orient_btn.pack(side="left", padx=(20, 0))  # Place next to status label
 
@@ -169,24 +244,47 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
             text="Ready",
             command=self.on_ready,  # Calls ready handler
             width=12,
+            font=BUTTON_FONT,
+            bg=SECONDARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=SECONDARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
         self.ready_btn.pack(side="right")  # Align right
 
-        boards = tk.Frame(root)  # Container holding both player grids
+        self.hint_lbl = tk.Label(
+            root,
+            text="Active player places ships in order from length 1 up to the selected fleet size.",
+            font=BODY_FONT,
+            bg=SCREEN_BG,
+            fg=TEXT_MUTED,
+            anchor="w",
+            justify="left",
+        )
+        self.hint_lbl.pack(fill="x", pady=(0, 16))
+
+        boards = tk.Frame(root, bg=SCREEN_BG)  # Container holding both player grids
         boards.pack(fill="both", expand=True)  # Let boards take remaining space
 
         # Player 1 panel (left side)
-        p1_panel = tk.Frame(boards)  # Left panel container
-        p1_panel.pack(side="left", fill="both", expand=True, padx=(0, 25))  # Left with spacing to middle
-        tk.Label(p1_panel, text="Player 1", font=("Arial", 22, "bold")).pack(pady=(0, 10))  # Title label
-        self.p1_grid = tk.Frame(p1_panel)  # Grid frame for Player 1 cells
+        self.p1_panel = tk.Frame(boards, bg=PANEL_BG, padx=16, pady=14, highlightthickness=3)
+        self.p1_panel.pack(side="left", fill="both", expand=True, padx=(0, 25))  # Left with spacing to middle
+        self.p1_title = tk.Label(self.p1_panel, text="Player 1 Fleet", font=SECTION_FONT, bg=PANEL_BG, fg=TEXT_DARK)
+        self.p1_title.pack(pady=(0, 4))
+        self.p1_hint = tk.Label(self.p1_panel, text="", font=SMALL_FONT, bg=PANEL_BG, fg=TEXT_MUTED)
+        self.p1_hint.pack(pady=(0, 10))
+        self.p1_grid = tk.Frame(self.p1_panel, bg=PANEL_BG)  # Grid frame for Player 1 cells
         self.p1_grid.pack()  # Pack the grid frame
 
         # Player 2 panel (right side)
-        p2_panel = tk.Frame(boards)  # Right panel container
-        p2_panel.pack(side="left", fill="both", expand=True, padx=(25, 0))  # Right with spacing from middle
-        tk.Label(p2_panel, text="Player 2", font=("Arial", 22, "bold")).pack(pady=(0, 10))  # Title label
-        self.p2_grid = tk.Frame(p2_panel)  # Grid frame for Player 2 cells
+        self.p2_panel = tk.Frame(boards, bg=PANEL_BG, padx=16, pady=14, highlightthickness=3)
+        self.p2_panel.pack(side="left", fill="both", expand=True, padx=(25, 0))  # Right with spacing from middle
+        self.p2_title = tk.Label(self.p2_panel, text="Player 2 Fleet", font=SECTION_FONT, bg=PANEL_BG, fg=TEXT_DARK)
+        self.p2_title.pack(pady=(0, 4))
+        self.p2_hint = tk.Label(self.p2_panel, text="", font=SMALL_FONT, bg=PANEL_BG, fg=TEXT_MUTED)
+        self.p2_hint.pack(pady=(0, 10))
+        self.p2_grid = tk.Frame(self.p2_panel, bg=PANEL_BG)  # Grid frame for Player 2 cells
         self.p2_grid.pack()  # Pack the grid frame
 
         self.p1_buttons = [[None] * GRID_SIZE for _ in range(GRID_SIZE)]  # Store Player 1 cell widgets
@@ -196,36 +294,35 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
         self._make_grid(player=2)  # Build Player 2 grid widgets + bindings
 
     def tkraise(self, aboveThis=None):
+        self._cancel_transition()
         # Re-enable buttons in case they were disabled in previous game
         self.ready_btn.config(state="normal")      # Allow pressing Ready again
         self.orient_btn.config(state="normal")     # Allow toggling orientation again
 
         self.refresh_ui()                          # Redraw board + update status text
-        # Bind H/V keys while on placement screen to toggle orientation
-        try:
-            # bind both lower and upper case
-            self.app.bind_all("<Key-h>", lambda e: self.toggle_orientation())
-            self.app.bind_all("<Key-H>", lambda e: self.toggle_orientation())
-            self.app.bind_all("<Key-v>", lambda e: self.toggle_orientation())
-            self.app.bind_all("<Key-V>", lambda e: self.toggle_orientation())
-        except Exception:
-            pass
+        self._bind_orientation_keys()
 
         super().tkraise(aboveThis)                 # Bring this screen to front
+
+    def on_hide(self):
+        self._cancel_transition()
+        self._unbind_orientation_keys()
 
 
     def _make_grid(self, player: int):
         frame = self.p1_grid if player == 1 else self.p2_grid  # Choose correct grid frame
         cells = self.p1_buttons if player == 1 else self.p2_buttons  # Choose correct button matrix
 
-        tk.Label(frame, text="", width=4).grid(row=0, column=0)  # Top-left empty corner
+        tk.Label(frame, text="", width=4, bg=PANEL_BG).grid(row=0, column=0)  # Top-left empty corner
 
         # Column headers (A–J)
         for c in range(GRID_SIZE):
             tk.Label(
                 frame,
                 text=col_to_letter(c),  # Convert column index to letter
-                font=("Arial", 16, "bold")
+                font=BOARD_LABEL_FONT,
+                bg=PANEL_BG,
+                fg=TEXT_DARK,
             ).grid(row=0, column=c + 1)
 
         # Row headers + actual grid cells
@@ -233,7 +330,9 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
             tk.Label(
                 frame,
                 text=row_to_number(r),  # Convert row index to 1–10
-                font=("Arial", 16, "bold")
+                font=BOARD_LABEL_FONT,
+                bg=PANEL_BG,
+                fg=TEXT_DARK,
             ).grid(row=r + 1, column=0)
 
             for c in range(GRID_SIZE):
@@ -245,6 +344,7 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
                     bg=ACTIVE_BG,  # Default active color
                     relief="solid",
                     borderwidth=1,
+                    cursor="hand2",
                 )
                 cell.grid(row=r + 1, column=c + 1, padx=1, pady=1)
 
@@ -260,7 +360,7 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
     def toggle_orientation(self):
         s = self.app.state
         s.placing_orientation = "V" if s.placing_orientation == "H" else "H"
-        self.orient_btn.config(text=f"Toggle ({s.placing_orientation})")
+        self.orient_btn.config(text=f"Orientation: {s.placing_orientation}")
         self.refresh_ui()
 
     def on_cell_click(self, player: int, row: int, col: int):
@@ -330,6 +430,57 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
 
         return coords  # Return full ship coordinate list
 
+    def _bind_orientation_keys(self):
+        try:
+            self.app.bind_all("<Key-h>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-H>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-v>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-V>", lambda e: self.toggle_orientation())
+        except Exception:
+            pass
+
+    def _unbind_orientation_keys(self):
+        try:
+            self.app.unbind_all("<Key-h>")
+            self.app.unbind_all("<Key-H>")
+            self.app.unbind_all("<Key-v>")
+            self.app.unbind_all("<Key-V>")
+        except Exception:
+            pass
+
+    def _cancel_transition(self):
+        if self._transition_job is not None:
+            try:
+                self.after_cancel(self._transition_job)
+            except Exception:
+                pass
+            self._transition_job = None
+
+    def _set_panel_state(self, panel, title, hint, active: bool, accent: str, text: str):
+        border = accent if active else PANEL_BG
+        panel.config(highlightbackground=border, highlightcolor=border)
+        title.config(fg=accent if active else TEXT_DARK)
+        hint.config(text=text, fg=TEXT_DARK if active else TEXT_MUTED)
+
+    def _start_battle_transition(self):
+        self.status_lbl.config(text="All fleets locked in. Battle starts in 3 seconds.")
+        self.hint_lbl.config(
+            text="Pass the device to the next player while both boards are hidden.",
+            fg=TEXT_DARK,
+        )
+
+        self.ready_btn.config(state="disabled")
+        self.orient_btn.config(state="disabled")
+
+        s = self.app.state
+        self._render_board(self.p1_buttons, s.p1_board, show_ships=False, ship_color=P1_SHIP_BG, covered=True)
+        self._render_board(self.p2_buttons, s.p2_board, show_ships=False, ship_color=P2_SHIP_BG, covered=True)
+        self._set_active(self.p1_buttons, active=False)
+        self._set_active(self.p2_buttons, active=False)
+        self._unbind_orientation_keys()
+        self._cancel_transition()
+        self._transition_job = self.after(3000, lambda: self.app.show_screen("BattleScreen"))
+
 
     def on_ready(self):
         s = self.app.state
@@ -356,39 +507,12 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
                 s.placing_player = 2
                 s.placing_ship_len = 1  # Reset ship length tracker
                 s.placing_orientation = "H"  # Reset orientation
-                self.orient_btn.config(text="Toggle (H)")  # Reset button label
+                self.orient_btn.config(text="Orientation: H")  # Reset button label
                 self.refresh_ui()
                 return
 
-        # If Player 2 finished (either because human clicked Ready or AI auto-placed) → short delay before battle phase
-        self.status_lbl.config(text="All ships placed! Starting battle...")  # Show transition message
-
-        self.ready_btn.config(state="disabled")   # Prevent double clicks during delay
-        self.orient_btn.config(state="disabled")  # Prevent orientation toggling during delay
-
-        # Hide both placement boards immediately so neither player can see the other's ships
-        # (cover with dark background and disable interactions). This is for
-        # local single-screen play so Player 1 cannot see Player 2's board after placement.
-        self._render_board(self.p1_buttons, s.p1_board, show_ships=False,
-                   ship_color=P1_SHIP_BG, covered=True)
-        self._render_board(self.p2_buttons, s.p2_board, show_ships=False,
-                   ship_color=P2_SHIP_BG, covered=True)
-
-        # Disable clicks on both boards during the transition
-        self._set_active(self.p1_buttons, active=False)
-        self._set_active(self.p2_buttons, active=False)
-
-        # Unbind placement key handlers before switching away
-        try:
-            self.app.unbind_all("<Key-h>")
-            self.app.unbind_all("<Key-H>")
-            self.app.unbind_all("<Key-v>")
-            self.app.unbind_all("<Key-V>")
-        except Exception:
-            pass
-
-        self.after(3000, lambda: self.app.show_screen("BattleScreen"))  # Wait 3 seconds, then switch
-        return  # IMPORTANT: stop function here
+        self._start_battle_transition()
+        return
     
 
     def refresh_ui(self):
@@ -404,9 +528,17 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
             self.status_lbl.config(
                 text=f"Placement — Player {s.placing_player}: place ship length {next_len}"
             )
+            self.hint_lbl.config(
+                text="Use Toggle (H/V) or press H / V. Click a placed ship to remove it and try again.",
+                fg=TEXT_MUTED,
+            )
         else:
             self.status_lbl.config(
                 text=f"Placement — Player {s.placing_player}: all ships placed. Click Ready."
+            )
+            self.hint_lbl.config(
+                text="Review the layout, then press Ready to lock this fleet.",
+                fg=TEXT_MUTED,
             )
 
         # Determine which board is active
@@ -423,6 +555,23 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
         # Enable/disable click interaction per board
         self._set_active(self.p1_buttons, active=p1_turn)
         self._set_active(self.p2_buttons, active=p2_turn)
+
+        self._set_panel_state(
+            self.p1_panel,
+            self.p1_title,
+            self.p1_hint,
+            active=p1_turn,
+            accent=P1_SHIP_BG,
+            text="Active player placing ships" if p1_turn else "Hidden until Player 1's turn",
+        )
+        self._set_panel_state(
+            self.p2_panel,
+            self.p2_title,
+            self.p2_hint,
+            active=p2_turn,
+            accent=P2_SHIP_BG,
+            text="Active player placing ships" if p2_turn else "Hidden until Player 2's turn",
+        )
 
 
     def _render_board(self, cells, board, show_ships: bool, ship_color: str, covered: bool):
@@ -504,88 +653,127 @@ class BattleScreen(tk.Frame):
     """
 
     def __init__(self, parent, app):
-        super().__init__(parent)  # Initialize Tkinter Frame base class
+        super().__init__(parent, bg=SCREEN_BG)  # Initialize Tkinter Frame base class
         self.app = app  # Store reference to App (for state + screen switching)
 
         self.selected = None        # Stores selected target cell as (row, col)
         self.input_locked = False   # True while waiting during turn-delay / win-delay
         self._special_armed = False # When True, next FIRE will perform a 3x3 special shot
+        self.awaiting_ai_turn = False
 
         self._ai_targets: list[tuple[int,int]] = []
+        self._pending_after = None
 
-        root = tk.Frame(self)  # Root container for this screen
-        root.pack(fill="x", expand=True)  # Expand horizontally
+        root = tk.Frame(self, bg=SCREEN_BG)  # Root container for this screen
+        root.pack(fill="both", expand=True, padx=30, pady=20)
 
         # Delay a bit then set wrap length based on current window width
         self.after(50, lambda: self.score_lbl.config(wraplength=self.winfo_width() - 80))
 
-        header = tk.Frame(root)  # Header area (turn + result message)
+        header = tk.Frame(root, bg=SCREEN_BG)  # Header area (turn + result message)
         header.pack(fill="x", expand=True)
 
         self.turn_lbl = tk.Label(  # Shows "Player X's turn"
             header,
             text="",
-            font=("Arial", 28, "bold"),
+            font=SECTION_FONT,
             anchor="center",
+            bg=SCREEN_BG,
+            fg=TEXT_DARK,
         )
         self.turn_lbl.pack(fill="x")
 
         self.result_lbl = tk.Label(  # Big feedback text: HIT / MISS / SINK / WINS
             header,
             text="",
-            font=("Arial", 40, "bold"),
+            font=BIG_RESULT_FONT,
             anchor="center",
+            bg=SCREEN_BG,
+            fg=TEXT_DARK,
         )
         self.result_lbl.pack(fill="x", expand=True, pady=(10, 10))
 
-        controls = tk.Frame(root)  # Row with FIRE button
+        self.helper_lbl = tk.Label(
+            header,
+            text="Select a target and fire. Random picks an unused cell. Special fires a 3x3 shot.",
+            font=BODY_FONT,
+            bg=SCREEN_BG,
+            fg=TEXT_MUTED,
+            anchor="center",
+        )
+        self.helper_lbl.pack(fill="x", pady=(0, 12))
+
+        controls = tk.Frame(root, bg=SCREEN_BG)  # Row with FIRE, RANDOM and SPECIAL buttons
         controls.pack(fill="x", pady=(0, 12))
 
+        # Centered inner row so buttons are evenly spaced and centered on screen
+        btn_row = tk.Frame(controls, bg=SCREEN_BG)
+        btn_row.pack(anchor="center")
+
+        btn_font = BUTTON_FONT
+        btn_width = BATTLE_BUTTON_WIDTH
+
         self.fire_btn = tk.Button(  # Confirm shot button
-            controls,
+            btn_row,
             text="FIRE",
-            font=("Arial", 24, "bold"),
-            width=10,
-            command=self.on_fire_pressed,  # Fires the currently selected cell
+            font=btn_font,
+            width=btn_width,
+            command=self.on_fire_pressed,
+            bg=PRIMARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=PRIMARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
-        self.fire_btn.pack()
+        self.fire_btn.pack(side="left", padx=12)
+
         # Random shot button: fires at a random unknown cell for current player
         self.random_btn = tk.Button(
-            controls,
+            btn_row,
             text="RANDOM",
-            font=("Arial", 16, "bold"),
-            width=10,
+            font=btn_font,
+            width=btn_width,
             command=self.on_random_pressed,
+            bg=SECONDARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=SECONDARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
-        self.random_btn.pack(side="left", padx=6)
+        self.random_btn.pack(side="left", padx=12)
 
         # Special area-shot button (3x3) with remaining counter
         self.special_btn = tk.Button(
-            controls,
+            btn_row,
             text="SPECIAL",
-            font=("Arial", 16, "bold"),
-            width=14,
+            font=btn_font,
+            width=btn_width,
             command=self.on_special_pressed,
+            bg=ACCENT_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=ACCENT_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
-        self.special_btn.pack(side="left", padx=6)
+        self.special_btn.pack(side="left", padx=12)
 
-        boards = tk.Frame(root)  # Container holding two boards
+        boards = tk.Frame(root, bg=SCREEN_BG)  # Container holding two boards
         boards.pack(fill="both", expand=True)
 
         # Left panel: Own board
-        left = tk.Frame(boards)  # Container for own board
+        left = tk.Frame(boards, bg=PANEL_BG, padx=16, pady=14)  # Container for own board
         left.pack(side="left", expand=True, padx=(0, 25))
-        self.left_title = tk.Label(left, text="Your Board", font=("Arial", 20, "bold"))  # Own board title
+        self.left_title = tk.Label(left, text="Your Board", font=BOARD_TITLE_FONT, bg=PANEL_BG, fg=TEXT_DARK)
         self.left_title.pack(pady=(0, 8))
-        self.own_grid = tk.Frame(left)  # Frame that holds the own board grid
+        self.own_grid = tk.Frame(left, bg=PANEL_BG)  # Frame that holds the own board grid
         self.own_grid.pack()
 
         # Right panel: Target board
-        right = tk.Frame(boards)  # Container for opponent board
+        right = tk.Frame(boards, bg=PANEL_BG, padx=16, pady=14)  # Container for opponent board
         right.pack(side="left", expand=True, padx=(25, 0))
-        self.right_title = tk.Label(right, text="Opponent Board", font=("Arial", 20, "bold"))  # Target title
+        self.right_title = tk.Label(right, text="Opponent Board", font=BOARD_TITLE_FONT, bg=PANEL_BG, fg=TEXT_DARK)
         self.right_title.pack(pady=(0, 8))
-        self.target_grid = tk.Frame(right)  # Frame holding target board grid
+        self.target_grid = tk.Frame(right, bg=PANEL_BG)  # Frame holding target board grid
         self.target_grid.pack()
 
         # 2D matrices holding cell widgets
@@ -599,9 +787,11 @@ class BattleScreen(tk.Frame):
         self.score_lbl = tk.Label(
             root,
             text="",
-            font=("Arial", 20, "bold"),
+            font=BODY_FONT,
             justify="center",
             anchor="center",
+            bg=SCREEN_BG,
+            fg=TEXT_DARK,
         )
         self.score_lbl.pack(pady=(14, 0), fill="x")  # Place scoreboard under boards
 
@@ -614,12 +804,13 @@ class BattleScreen(tk.Frame):
 
     def tkraise(self, aboveThis=None):
         # Reset per-game / per-entry UI state when this screen is shown
-        self.selected = None  # Clear any previous selection
-        self.input_locked = False  # Allow input again
-        self.result_lbl.config(text="")  # Clear result text
-        self.fire_btn.config(state="normal")  # Re-enable FIRE button
+        self._cancel_pending_after()
         self._cancel_shot_blackout()
         self._end_shot_blackout()
+        self.selected = None  # Clear any previous selection
+        self.input_locked = False  # Allow input again
+        self.awaiting_ai_turn = False
+        self._set_result("")
 
         # clear the AI hunting queue when a new battle begins
         self._ai_targets.clear()
@@ -628,16 +819,23 @@ class BattleScreen(tk.Frame):
         self.refresh_ui()  # Re-render boards + scoreboard based on current GameState
         super().tkraise(aboveThis)  # Bring this screen to the front
 
+    def on_hide(self):
+        self._cancel_pending_after()
+        self._cancel_shot_blackout()
+        self.awaiting_ai_turn = False
+
 
     def _make_grid(self, frame, cells, clickable: bool):
-        tk.Label(frame, text="", width=4).grid(row=0, column=0)  # Top-left empty corner (aligns headers)
+        tk.Label(frame, text="", width=4, bg=PANEL_BG).grid(row=0, column=0)  # Top-left empty corner (aligns headers)
 
         # Column headers A–J
         for c in range(GRID_SIZE):
             tk.Label(
                 frame,
                 text=col_to_letter(c),  # Convert column index to A–J
-                font=("Arial", 16, "bold")
+                font=BOARD_LABEL_FONT,
+                bg=PANEL_BG,
+                fg=TEXT_DARK,
             ).grid(row=0, column=c + 1)  # +1 because col 0 is reserved for row labels
 
         # Row headers 1–10 + create grid cells
@@ -645,7 +843,9 @@ class BattleScreen(tk.Frame):
             tk.Label(
                 frame,
                 text=row_to_number(r),  # Convert row index to 1–10
-                font=("Arial", 16, "bold")
+                font=BOARD_LABEL_FONT,
+                bg=PANEL_BG,
+                fg=TEXT_DARK,
             ).grid(row=r + 1, column=0)  # +1 because row 0 is reserved for column labels
 
             for c in range(GRID_SIZE):
@@ -658,6 +858,7 @@ class BattleScreen(tk.Frame):
                     relief="solid",
                     borderwidth=1,
                     font=("Arial", 20, "bold"),
+                    cursor="hand2" if clickable else "arrow",
                 )
                 cell.grid(row=r + 1, column=c + 1, padx=1, pady=1)  # Place cell widget
 
@@ -670,9 +871,64 @@ class BattleScreen(tk.Frame):
 
                 cells[r][c] = cell  # Store the widget in the 2D matrix
 
+    def _controls_locked(self) -> bool:
+        return self.input_locked or self.awaiting_ai_turn
+
+    def _set_result(self, text: str, tone: str = "neutral"):
+        color = RESULT_COLORS.get(tone, TEXT_DARK)
+        self.result_lbl.config(text=text, fg=color)
+
+    def _cancel_pending_after(self):
+        if self._pending_after is not None:
+            try:
+                self.after_cancel(self._pending_after)
+            except Exception:
+                pass
+            self._pending_after = None
+
+    def _schedule_pending(self, delay_ms: int, callback):
+        self._cancel_pending_after()
+        self._pending_after = self.after(delay_ms, callback)
+
+    def _show_winner(self, winner_text: str):
+        win_screen = self.app.screens["WinScreen"]
+        win_screen.set_winner(winner_text)
+        win_screen.set_stats()
+        self.app.show_screen("WinScreen")
+
+    def _schedule_winner(self, winner_num: int):
+        winner_text = f"PLAYER {winner_num} WINS!"
+        self.input_locked = True
+        self.awaiting_ai_turn = False
+        self.selected = None
+        self._set_result(winner_text, tone="good")
+        self.refresh_ui()
+        self._schedule_pending(1500, lambda: self._show_winner(winner_text))
+
+    def _update_controls(self):
+        locked = self._controls_locked()
+        has_selection = self.selected is not None
+        specials_left = 0
+        if self.app.state.current_turn == 1:
+            specials_left = self.app.state.p1_specials
+        else:
+            specials_left = self.app.state.p2_specials
+
+        self.fire_btn.config(state="normal" if not locked and has_selection else "disabled")
+        self.random_btn.config(state="normal" if not locked and not self._special_armed else "disabled")
+        if specials_left > 0 and not locked:
+            self.special_btn.config(state="normal")
+        else:
+            self.special_btn.config(state="disabled")
+
+        if self._special_armed:
+            self.special_btn.config(text=f"SPECIAL (ARMED) ({specials_left})")
+        else:
+            self.special_btn.config(text=f"SPECIAL ({specials_left})")
+
 
     def on_select(self, row: int, col: int):
-        if self.input_locked:  # Prevent selecting during turn switch delay / win delay
+        if self._controls_locked():  # Prevent selecting during turn switch delay / AI turn / win delay
             return
 
         self.selected = (row, col)  # Store current target selection
@@ -681,14 +937,14 @@ class BattleScreen(tk.Frame):
 
     def on_random_pressed(self):
         """Select a random UNKNOWN cell for the current player and fire."""
-        if self.input_locked:
+        if self._controls_locked():
             return
         s = self.app.state
         turn = s.current_turn
         shots = s.p1_shots if turn == 1 else s.p2_shots
         unknowns = [(r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE) if shots[r][c] == UNKNOWN]
         if not unknowns:
-            self.result_lbl.config(text="NO TARGETS")
+            self._set_result("NO TARGETS LEFT", tone="warn")
             return
         import random
         r, c = random.choice(unknowns)
@@ -703,33 +959,33 @@ class BattleScreen(tk.Frame):
         When armed, the target board will show a 3x3 preview around the
         selected cell. The next `FIRE` press will execute the special shot.
         """
-        if self.input_locked:
+        if self._controls_locked():
             return
         s = self.app.state
         turn = s.current_turn
         remaining = s.p1_specials if turn == 1 else s.p2_specials
         if remaining <= 0:
-            self.result_lbl.config(text="NO SPECIALS")
+            self._set_result("NO SPECIALS LEFT", tone="warn")
             return
 
         # Toggle armed state; do NOT require a prior selection. User can
         # press SPECIAL first, then click a cell to place the 3x3 preview.
         if not self._special_armed:
             self._special_armed = True
-            self.result_lbl.config(text="SPECIAL ARMED — select a cell")
+            self._set_result("SPECIAL ARMED - select a center cell", tone="neutral")
         else:
             # disarm
             self._special_armed = False
-            self.result_lbl.config(text="SPECIAL CANCELED")
+            self._set_result("SPECIAL CANCELED", tone="neutral")
 
         self.refresh_ui()
 
     def on_fire_pressed(self):
-        if self.input_locked:  # Block firing while locked (during delay)
+        if self._controls_locked():  # Block firing while locked (during delay)
             return None
 
         if self.selected is None:  # Must select a target before firing
-            self.result_lbl.config(text="SELECT A CELL")
+            self._set_result("SELECT A TARGET", tone="warn")
             return None
 
         s = self.app.state  # Shortcut to shared GameState
@@ -741,7 +997,7 @@ class BattleScreen(tk.Frame):
             # Ensure player has specials remaining
             remaining = s.p1_specials if turn == 1 else s.p2_specials
             if remaining <= 0:
-                self.result_lbl.config(text="NO SPECIALS")
+                self._set_result("NO SPECIALS LEFT", tone="warn")
                 self._special_armed = False
                 return None
 
@@ -771,9 +1027,14 @@ class BattleScreen(tk.Frame):
             hits = summary.get("hits", 0)
             sinks = summary.get("sinks", 0)
             misses = summary.get("misses", 0)
+            already = summary.get("already", 0)
 
             # Show aggregated result
-            self.result_lbl.config(text=f"H:{hits} S:{sinks} M:{misses}")
+            result_text = f"SPECIAL - Hits: {hits} | Sinks: {sinks} | Misses: {misses}"
+            if already:
+                result_text += f" | Already: {already}"
+            tone = "good" if hits or sinks else "warn"
+            self._set_result(result_text, tone=tone)
 
             # reset special armed state
             self._special_armed = False
@@ -786,24 +1047,13 @@ class BattleScreen(tk.Frame):
 
             # Check win condition
             if ships_remaining(defender_ships, defender_hits) == 0:
-                self.input_locked = True
-                self.fire_btn.config(state="disabled")
-                self.result_lbl.config(text=f"PLAYER {winner_num} WINS!")
-
-                def go_to_win():
-                    win_screen = self.app.screens["WinScreen"]
-                    win_screen.set_winner(f"PLAYER {winner_num} WINS!")
-                    win_screen.set_stats()
-                    self.app.show_screen("WinScreen")
-
-                self._pending_after = self.after(1500, go_to_win)
+                self._schedule_winner(winner_num)
                 return "area"
 
             # normal turn-switch after area shot
             self.input_locked = True
-            self.fire_btn.config(state="disabled")
             if s.p2_ai_mode is None:
-                self._pending_after = self.after(TURN_DELAY_MS, self._switch_turn)
+                self._schedule_pending(TURN_DELAY_MS, self._switch_turn)
             else:
                 self._switch_turn()
 
@@ -835,11 +1085,14 @@ class BattleScreen(tk.Frame):
 
         # If this cell was already fired on, do not proceed
         if result == "already":
-            self.result_lbl.config(text="ALREADY SHOT")
+            self._set_result("ALREADY SHOT", tone="warn")
             return result
 
         # Show HIT/MISS/SINK immediately
-        self.result_lbl.config(text=result.upper())
+        if result == "miss":
+            self._set_result("MISS", tone="neutral")
+        else:
+            self._set_result(result.upper(), tone="good")
 
         self.selected = None  # Clear current target selection
         self.refresh_ui()  # Repaint boards so shot mark appears immediately
@@ -850,25 +1103,14 @@ class BattleScreen(tk.Frame):
 
         # Check win condition: if defender has 0 ships remaining, attacker wins
         if ships_remaining(defender_ships, defender_hits) == 0:
-            self.input_locked = True  # Prevent any more interaction
-            self.fire_btn.config(state="disabled")  # Disable FIRE button
-            self.result_lbl.config(text=f"PLAYER {winner_num} WINS!")  # Show win message on BattleScreen
-
-            def go_to_win():
-                win_screen = self.app.screens["WinScreen"]  # Get WinScreen instance
-                win_screen.set_winner(f"PLAYER {winner_num} WINS!")  # Set winner text
-                win_screen.set_stats()  # Compute + display final stats
-                self.app.show_screen("WinScreen")  # Switch to WinScreen
-
-            self._pending_after = self.after(1500, go_to_win)  # Delay 1.5 sec then go to win screen
+            self._schedule_winner(winner_num)
             return result
 
         # If no win, lock input and schedule turn switch
         self.input_locked = True  # Lock input during delay
-        self.fire_btn.config(state="disabled")  # Disable FIRE button during delay
         if s.p2_ai_mode is None:
             # normal two-player: wait a moment before handing control
-            self._pending_after = self.after(TURN_DELAY_MS, self._switch_turn)
+            self._schedule_pending(TURN_DELAY_MS, self._switch_turn)
         else:
             # against AI: skip blackout/delay and switch immediately
             self._switch_turn()
@@ -927,21 +1169,22 @@ class BattleScreen(tk.Frame):
     def _switch_turn(self):
         s = self.app.state  # Shortcut to shared GameState
 
+        self._cancel_pending_after()
         s.current_turn = 2 if s.current_turn == 1 else 1  # Flip turn: 1 -> 2, 2 -> 1
 
-        self.result_lbl.config(text="")  # Clear result message (HIT/MISS/SINK) for next player
+        self._set_result("")  # Clear result message (HIT/MISS/SINK) for next player
         self.input_locked = False  # Re-enable input now that delay is over
+        self.awaiting_ai_turn = s.p2_ai_mode in ("easy", "medium") and s.current_turn == 2
+        self.selected = None
 
         self.cell_font = ("Arial", 16, "bold")   # Normal cell font
         self.mark_font = ("Arial", 26, "bold")   # Hit/miss mark font
 
-        self.fire_btn.config(state="normal")  # Re-enable FIRE button
-
         self.refresh_ui()  # Re-render boards + scoreboard for new player view
 
-        if s.p2_ai_mode in ("easy", "medium") and s.current_turn == 2:
+        if self.awaiting_ai_turn:
             # small pause so the player can see the turn label update
-            self.after(500, self._ai_take_turn)
+            self._schedule_pending(500, self._ai_take_turn)
 
 
     def refresh_ui(self):
@@ -951,6 +1194,7 @@ class BattleScreen(tk.Frame):
         # If we're in the post-shot blackout window, cover both boards and stop.
         if self._shot_blackout_active:
             self._render_blackout_boards()
+            self._update_controls()
             return
 
         # Choose what the current player sees, based on whose turn it is
@@ -963,6 +1207,8 @@ class BattleScreen(tk.Frame):
             own_color = P1_SHIP_BG
 
             my_shots = s.p1_shots
+            self.left_title.config(text="Your Fleet")
+            self.right_title.config(text="Target Grid")
 
             p1_stats = self._stats(s.p1_shots, s.p1_ships, s.p1_hits)
             p2_stats = self._stats(s.p2_shots, s.p2_ships, s.p2_hits)
@@ -974,6 +1220,8 @@ class BattleScreen(tk.Frame):
                 own_color = P1_SHIP_BG           # Color to show P1 ships
 
                 my_shots = s.p1_shots            # What P1 has fired at P2 (unknown/miss/hit)
+                self.left_title.config(text="Player 1 Fleet")
+                self.right_title.config(text="Player 1 Targeting")
 
                 p1_stats = self._stats(s.p1_shots, s.p1_ships, s.p1_hits)  # P1 stats
                 p2_stats = self._stats(s.p2_shots, s.p2_ships, s.p2_hits)  # P2 stats
@@ -983,6 +1231,8 @@ class BattleScreen(tk.Frame):
                 own_color = P2_SHIP_BG           # Color to show P2 ships
 
                 my_shots = s.p2_shots            # What P2 has fired at P1
+                self.left_title.config(text="Player 2 Fleet")
+                self.right_title.config(text="Player 2 Targeting")
 
                 p1_stats = self._stats(s.p1_shots, s.p1_ships, s.p1_hits)  # P1 stats
                 p2_stats = self._stats(s.p2_shots, s.p2_ships, s.p2_hits)  # P2 stats
@@ -1011,30 +1261,18 @@ class BattleScreen(tk.Frame):
                 f"Ship hits: {p2_ship_line}"
             )
         )
-
-        # Update special button label + enabled state for current player
-        try:
-            rem = s.p1_specials if s.current_turn == 1 else s.p2_specials
-            # show armed state in label when appropriate
-            if getattr(self, "_special_armed", False):
-                self.special_btn.config(text=f"SPECIAL (ARMED) ({rem})")
-            else:
-                self.special_btn.config(text=f"SPECIAL ({rem})")
-            if rem > 0 and not self.input_locked:
-                self.special_btn.config(state="normal")
-            else:
-                self.special_btn.config(state="disabled")
-            # disable random while special is armed to avoid conflicts
-            if getattr(self, "_special_armed", False):
-                self.random_btn.config(state="disabled")
-            else:
-                self.random_btn.config(state="normal")
-        except Exception:
-            # in case the widget isn't available (older UI state), ignore
-            pass
+        if self.awaiting_ai_turn:
+            self.helper_lbl.config(text="Computer is choosing a target...", fg=TEXT_MUTED)
+        elif self._special_armed:
+            self.helper_lbl.config(text="Special armed: pick the center of the 3x3 blast zone.", fg=TEXT_DARK)
+        else:
+            self.helper_lbl.config(
+                text="Select a target and fire. Random picks an unused cell. Special fires a 3x3 shot.",
+                fg=TEXT_MUTED,
+            )
 
         # Highlight selected target cell (single cell) or 3x3 preview when special armed
-        if self.selected is not None and not self.input_locked:
+        if self.selected is not None and not self._controls_locked():
             r, c = self.selected
             if getattr(self, "_special_armed", False):
                 # show 3x3 preview outline (only for UNKNOWN cells)
@@ -1049,7 +1287,7 @@ class BattleScreen(tk.Frame):
                     self.target_cells[r][c].config(bg=HIGHLIGHT_BG)  # Yellow highlight
 
         # Disable or restore click bindings on target board depending on lock state
-        if self.input_locked:
+        if self._controls_locked():
             for r in range(GRID_SIZE):
                 for c in range(GRID_SIZE):
                     self.target_cells[r][c].unbind("<Button-1>")  # Prevent selecting during delay
@@ -1057,6 +1295,8 @@ class BattleScreen(tk.Frame):
             for r in range(GRID_SIZE):
                 for c in range(GRID_SIZE):
                     self.target_cells[r][c].bind("<Button-1>", self.target_cells[r][c]._click_handler)  # Re-enable selection
+
+        self._update_controls()
 
 
     def _render_own_board(self, cells, ship_board, incoming_board, ship_color: str):
@@ -1109,6 +1349,8 @@ class BattleScreen(tk.Frame):
         import random
         s = self.app.state
         mode = s.p2_ai_mode
+        self._cancel_pending_after()
+        self.awaiting_ai_turn = False
 
         # helper to pop a valid target from queue
         def pop_target():
@@ -1174,36 +1416,66 @@ class BattleScreen(tk.Frame):
 
 class WinScreen(tk.Frame):  # Final screen: show winner + stats + play again / exit
     def __init__(self, parent, app):
-        super().__init__(parent)  # Initialize Frame base class
+        super().__init__(parent, bg=SCREEN_BG)  # Initialize Frame base class
         self.app = app  # Reference to App (for new_game + destroy + state)
 
-        self.title_lbl = tk.Label(self, text="Game Over", font=("Arial", 30, "bold"))  # Big title label
+        self.title_lbl = tk.Label(self, text="Game Over", font=TITLE_FONT, bg=SCREEN_BG, fg=TEXT_DARK)
         self.title_lbl.pack(pady=20)  # Add vertical spacing
 
-        self.winner_lbl = tk.Label(self, text="", font=("Arial", 24))  # Winner text gets filled later
-        self.winner_lbl.pack(pady=10)
+        self.winner_lbl = tk.Label(self, text="", font=SECTION_FONT, bg=SCREEN_BG, fg=TEXT_DARK)
+        self.winner_lbl.pack(pady=(0, 10))
 
-        self.stats_lbl = tk.Label(self, text="", font=("Arial", 18), justify="left")  # Stats block
-        self.stats_lbl.pack(pady=10)
+        self.summary_lbl = tk.Label(
+            self,
+            text="Review the final stats below or start a rematch.",
+            font=BODY_FONT,
+            bg=SCREEN_BG,
+            fg=TEXT_MUTED,
+        )
+        self.summary_lbl.pack(pady=(0, 18))
 
-        btn_row = tk.Frame(self)  # Container holding both buttons
+        stats_card = tk.Frame(self, bg=CARD_BG, padx=24, pady=20)
+        stats_card.pack(pady=10)
+
+        self.stats_lbl = tk.Label(
+            stats_card,
+            text="",
+            font=BODY_FONT,
+            justify="left",
+            bg=CARD_BG,
+            fg=TEXT_DARK,
+            anchor="w",
+        )
+        self.stats_lbl.pack()
+
+        btn_row = tk.Frame(self, bg=SCREEN_BG)  # Container holding both buttons
         btn_row.pack(pady=25)
 
         play_btn = tk.Button(  # Restart the game
             btn_row,
             text="Play Again",
-            font=("Arial", 16, "bold"),
+            font=BUTTON_FONT,
             width=18,
             command=self.play_again,  # Calls play_again()
+            bg=PRIMARY_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=PRIMARY_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
         play_btn.grid(row=0, column=0, padx=10)
 
         exit_btn = tk.Button(  # Close the entire app
             btn_row,
             text="Exit",
-            font=("Arial", 16, "bold"),
+            font=BUTTON_FONT,
             width=18,
             command=self.exit_game,  # Calls exit_game()
+            bg=ACCENT_BTN_BG,
+            fg=BUTTON_FG,
+            activebackground=ACCENT_BTN_BG,
+            activeforeground=BUTTON_FG,
+            relief="flat",
         )
         exit_btn.grid(row=0, column=1, padx=10)
 

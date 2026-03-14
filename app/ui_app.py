@@ -8,6 +8,12 @@ from app.app_models import GameState  # Shared game state object
 from app.ui_screen import WelcomeScreen, PlacementScreen, BattleScreen, WinScreen  # All screen classes
 from pathlib import Path  # For file path handling
 
+try:
+    from PIL import Image, ImageTk
+except ImportError:  # Pillow is optional; the app still runs without wallpaper support.
+    Image = None
+    ImageTk = None
+
 
 '''
 This file defines the main Tkinter application class, App, which acts as the screen manager. 
@@ -21,6 +27,7 @@ class App(tk.Tk):  # Main application window inherits from Tk
         super().__init__()  # Initialize Tk base class
         self.title("Battleship")  # Set window title
         self.state = GameState()  # Create shared game state object
+        self._current_screen_name = None
 
         # Make text larger across the app by default.
         self.option_add("*Font", ("Arial", 16))
@@ -30,7 +37,7 @@ class App(tk.Tk):  # Main application window inherits from Tk
         # --- Wallpaper / background setup ---
         self._bg_original = None      # PIL.Image (original)
         self._bg_photo = None         # ImageTk.PhotoImage (resized)
-        self._bg_label = tk.Label(self, bd=0)
+        self._bg_label = tk.Label(self, bd=0, bg="#0b1f33")
         self._bg_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.bind("<Configure>", self._on_resize)  # auto-resize wallpaper when window changes
 
@@ -104,6 +111,12 @@ class App(tk.Tk):  # Main application window inherits from Tk
         screen.grid(row=0, column=0, sticky="nsew")  # Stack screens on top of each other
 
     def show_screen(self, name: str):
+        if self._current_screen_name and self._current_screen_name != name:
+            current = self.screens.get(self._current_screen_name)
+            if current and hasattr(current, "on_hide"):
+                current.on_hide()
+
+        self._current_screen_name = name
         self.screens[name].tkraise()  # Bring selected screen to the front
 
     def new_game(self):
@@ -122,6 +135,13 @@ class App(tk.Tk):  # Main application window inherits from Tk
 
     def choose_wallpaper(self):
         """Open a file picker so the user can choose a wallpaper image."""
+        if Image is None or ImageTk is None:
+            messagebox.showinfo(
+                "Wallpaper Unavailable",
+                "Wallpaper support requires Pillow. Install it to enable custom backgrounds.",
+            )
+            return
+
         path = filedialog.askopenfilename(
             title="Choose a wallpaper image",
             filetypes=[
@@ -142,6 +162,9 @@ class App(tk.Tk):  # Main application window inherits from Tk
         - Absolute paths (from the file picker) work as-is.
         - Relative paths (repo assets like 'assets/..') resolve from the project root.
         """
+        if Image is None or ImageTk is None:
+            raise RuntimeError("Pillow is not installed.")
+
         p = Path(path)
 
         # If a relative path is provided, resolve it from the project root (Battleship/)
@@ -170,14 +193,18 @@ class App(tk.Tk):  # Main application window inherits from Tk
 
     def _render_wallpaper(self):
         """Resize the original wallpaper to the current window size and apply it."""
-        if self._bg_original is None:
+        if self._bg_original is None or Image is None or ImageTk is None:
             return
 
         w = max(1, self.winfo_width())
         h = max(1, self.winfo_height())
 
         # Use high-quality resizing
-        resized = self._bg_original.resize((w, h), Image.LANCZOS)
+        if hasattr(Image, "Resampling"):
+            resample = Image.Resampling.LANCZOS
+        else:
+            resample = Image.LANCZOS
+        resized = self._bg_original.resize((w, h), resample)
         self._bg_photo = ImageTk.PhotoImage(resized)
         self._bg_label.config(image=self._bg_photo)
         self._bg_label.lower()         # keep it behind

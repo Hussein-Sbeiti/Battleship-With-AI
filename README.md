@@ -1,170 +1,83 @@
----
-
 # Battleship (Python / Tkinter)
 
-A two-player Battleship game built in Python using Tkinter.
-Turn-based gameplay with hidden boards, ship placement, battle logic, scoreboard tracking, and a dedicated win screen.
+A local Battleship game built in Python with Tkinter. It supports two-player pass-and-play, AI opponents, random shots, limited-use 3x3 special shots, end-game stats, and replay flow.
 
----
+## Project Layout
 
-## Game Overview
-
-Battleship is a strategy game where two players place ships on a 10×10 grid and take turns firing at the opponent’s board.
-
-The goal is to sink all of the opponent’s ships first.
-
-This project focuses on:
-
-* Turn-based hidden-information gameplay
-* Clean separation of logic (state + rules + UI)
-* Clear visual feedback for hits, misses, sinks, and win state
-* Restartable multi-screen flow
-
----
-
-## Project Structure
-
-```
-Battleship/
-│
-├── main.py                # Program entry point
-│
+```text
+Battleship-AI/
+├── main.py
 ├── app/
-│   ├── __init__.py
-│   ├── ui_app.py          # Main Tkinter app + screen manager
-│   └── ui_screen.py       # Welcome, Placement, Battle, Win screens
-│
+│   ├── app_models.py
+│   ├── ui_app.py
+│   └── ui_screen.py
 ├── game/
-│   ├── board.py           # Board placement validation
-│   ├── rules.py           # Fire logic, sink detection, win logic
-│   └── ships.py           # Ship utilities + per-ship hit counters
-│
-├── utils/
-│   └── coords.py          # Coordinate helpers (A–J, 1–10 labels)
-│
-├── README.md
-└── .gitignore
+│   ├── board.py
+│   ├── coords.py
+│   ├── game_models.py
+│   ├── rules.py
+│   └── ships.py
+└── tests/
+    ├── test_game_state.py
+    └── test_rules.py
 ```
 
----
+## Game Flow
 
-## Screens & Game Flow
+1. Start the app from `main.py`.
+2. Choose a fleet size from 1 to 5 ships.
+3. Start either:
+   - local two-player mode
+   - AI Easy
+   - AI Medium
+4. Place ships in order from length 1 up to the chosen fleet size.
+5. Battle using:
+   - normal single-cell fire
+   - `RANDOM` to fire at a random unknown cell
+   - `SPECIAL` for a limited 3x3 shot
+6. Win by sinking every enemy ship or by opponent forfeit.
+7. Review final stats and choose replay or exit.
 
-### 1. Welcome Screen
+## Features
 
-* Choose number of ships (1–5)
-* Ship sizes are automatically generated:
+- Shared `GameState` for placement, battle, AI mode, and special-shot counters
+- Hidden-board pass-and-play flow with handoff blackout
+- Easy and medium AI opponents
+- Random shot button
+- Limited-use special 3x3 shot
+- Forfeit menu action
+- Final accuracy and ship-damage stats
+- Optional wallpaper support when Pillow is installed
 
-  * 1 ship → 1×1
-  * 2 ships → 1×1, 1×2
-  * ...
-  * 5 ships → 1×1 through 1×5
+## Run the Game
 
-After selecting ships, the game transitions to placement.
-
----
-
-### 2. Placement Phase
-
-* Player 1 places ships first
-* Player 2 places ships second
-* Ships can be placed:
-
-  * Horizontally (H)
-  * Vertically (V)
-* Clicking an existing ship removes it
-* Only the active player’s board is visible
-* Must place all ships before continuing
-* After Player 2 presses Ready, a short delay occurs before battle begins
-
----
-
-### 3. Battle Phase
-
-Each turn:
-
-1. Select a cell on the opponent’s board
-2. Press FIRE
-3. Result displays:
-
-   * HIT
-   * MISS
-   * SINK
-4. After a short delay, turn switches
-
-Visual indicators:
-
-* `X` = Hit
-* `O` = Miss
-* Player 1 ships = Green
-* Player 2 ships = Orange
-
-Opponent ships remain hidden during battle.
-
----
-
-### 4. Scoreboard
-
-Displayed during battle for both players:
-
-* Total shots
-* Hits
-* Misses
-* Ships remaining
-* Per-ship hit counters (example: `2/3`)
-
----
-
-### 5. Win Screen
-
-When one player’s ships are all sunk:
-
-* Winner is displayed
-* Final stats are shown for both players
-* Options:
-
-  * Play Again (returns to Welcome Screen)
-  * Exit (closes the application)
-
----
-
-## How to Run
-
-```
+```bash
 python3 main.py
 ```
 
-Requirements:
+## Run Tests
 
-* Python 3.x
-* Tkinter (included with most Python installations)
+```bash
+python3 -m unittest
+```
 
----
+## Manual Validation Checklist
 
-## Features Implemented
+- Start a local two-player game and complete placement for both players.
+- Confirm only the active player board is visible during placement.
+- Verify invalid ship placement shows an error and does not change the board.
+- Remove and replace a placed ship during placement.
+- Start an AI Easy game and confirm player 2 ships are auto-placed.
+- Start an AI Medium game and confirm the AI continues taking turns without exposing hidden boards.
+- Use `RANDOM` and confirm it fires only at unknown cells.
+- Arm `SPECIAL`, preview the 3x3 area, fire it, and confirm the counter decreases.
+- Exhaust all special shots and confirm the special control disables cleanly.
+- Trigger a forfeit during battle and confirm the win screen appears with stats.
+- Finish a game normally and confirm replay returns to the welcome screen without stale delayed transitions.
+- If Pillow is installed, choose and clear a wallpaper.
+- If Pillow is not installed, confirm the app still runs and wallpaper actions fail gracefully.
 
-* Multi-screen Tkinter application
-* 10×10 grid with labeled rows and columns
-* Ship placement with orientation toggle
-* Turn-based firing system
-* Hit / Miss / Sink logic
-* Hidden opponent board
-* Scoreboard tracking
-* Per-ship hit counters
-* Win detection
-* Restart flow
-* Controlled transition delays between phases
+## Notes
 
----
-
-## Future Improvements
-
-* Sound effects for hits and sinks
-* Keyboard coordinate input (e.g., B7)
-* UI animations and polish
-* AI opponent mode
-* Game settings screen
-* Code documentation expansion
-
----
-
+- Tkinter is included with most Python installations.
+- Pillow is optional and only needed for wallpaper loading/resizing.

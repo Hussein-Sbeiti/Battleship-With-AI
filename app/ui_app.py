@@ -6,7 +6,6 @@ import tkinter as tk  # Tkinter GUI framework
 from tkinter import filedialog, messagebox, ttk  # File picker + simple alerts
 from app.app_models import GameState  # Shared game state object
 from app.ui_screen import WelcomeScreen, PlacementScreen, BattleScreen, WinScreen  # All screen classes
-from PIL import Image, ImageTk  # Pillow library for image handling (if needed for UI)
 from pathlib import Path  # For file path handling
 
 

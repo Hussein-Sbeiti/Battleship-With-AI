@@ -88,6 +88,66 @@ def ships_remaining(defender_ships: List[List[Coord]], defender_hits: Set[Coord]
 
     return remaining
 
+
+def fire_area_shot(
+    shots_board: List[List[int]],
+    incoming_board: List[List[int]],
+    defender_ships: List[List[Coord]],
+    defender_hits: Set[Coord],
+    center_row: int,
+    center_col: int,
+) -> dict:
+    """
+    Handle a 3x3 area shot centered at (center_row, center_col).
+
+    Marks each cell in the 3x3 area (clipped to board bounds) and updates
+    shots_board, incoming_board and defender_hits accordingly.
+
+    Returns a summary dict with keys: 'hits', 'misses', 'sinks', 'already'.
+    """
+    hits = 0
+    misses = 0
+    sinks = 0
+    already = 0
+
+    # iterate over a 3x3 area centered on the given coords
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            r = center_row + dr
+            c = center_col + dc
+            # Skip out-of-bounds
+            if not (0 <= r < len(shots_board) and 0 <= c < len(shots_board[0])):
+                continue
+
+            # If already fired upon, count and skip
+            if shots_board[r][c] != UNKNOWN:
+                already += 1
+                continue
+
+            target = (r, c)
+            # Check for ship hit
+            ship_index = None
+            for i, ship in enumerate(defender_ships):
+                if target in ship:
+                    ship_index = i
+                    break
+
+            if ship_index is None:
+                shots_board[r][c] = MISS
+                incoming_board[r][c] = MISS
+                misses += 1
+            else:
+                shots_board[r][c] = HIT
+                incoming_board[r][c] = HIT
+                defender_hits.add(target)
+                hits += 1
+                # If the whole ship is now hit, increment sinks
+                ship_coords = defender_ships[ship_index]
+                if all(coord in defender_hits for coord in ship_coords):
+                    sinks += 1
+
+    return {"hits": hits, "misses": misses, "sinks": sinks, "already": already}
+
 def ship_hit_counters(ships_list, hits_set):
     """
     Returns a list like ["2/3", "0/4", ...] in the same order as ships_list.

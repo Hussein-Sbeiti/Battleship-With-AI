@@ -17,7 +17,7 @@ This file focuses on UI behavior and flow, while delegating rule enforcement (hi
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from game.rules import fire_shot, ships_remaining, ship_hit_counters, UNKNOWN, MISS, HIT  # type: ignore
+from game.rules import fire_shot, fire_area_shot, ships_remaining, ship_hit_counters, UNKNOWN, MISS, HIT  # type: ignore
 from game.coords import col_to_letter, row_to_number
 
 
@@ -529,6 +529,25 @@ class BattleScreen(tk.Frame):
             command=self.on_fire_pressed,  # Fires the currently selected cell
         )
         self.fire_btn.pack()
+        # Random shot button: fires at a random unknown cell for current player
+        self.random_btn = tk.Button(
+            controls,
+            text="RANDOM",
+            font=("Arial", 16, "bold"),
+            width=10,
+            command=self.on_random_pressed,
+        )
+        self.random_btn.pack(side="left", padx=6)
+
+        # Special area-shot button (3x3) with remaining counter
+        self.special_btn = tk.Button(
+            controls,
+            text="SPECIAL",
+            font=("Arial", 16, "bold"),
+            width=14,
+            command=self.on_special_pressed,
+        )
+        self.special_btn.pack(side="left", padx=6)
 
         boards = tk.Frame(root)  # Container holding two boards
         boards.pack(fill="both", expand=True)
@@ -637,6 +656,104 @@ class BattleScreen(tk.Frame):
 
         self.selected = (row, col)  # Store current target selection
         self.refresh_ui()  # Refresh to apply highlight on selected target cell
+
+
+    def on_random_pressed(self):
+        """Select a random UNKNOWN cell for the current player and fire."""
+        if self.input_locked:
+            return
+        s = self.app.state
+        turn = s.current_turn
+        shots = s.p1_shots if turn == 1 else s.p2_shots
+        unknowns = [(r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE) if shots[r][c] == UNKNOWN]
+        if not unknowns:
+            self.result_lbl.config(text="NO TARGETS")
+            return
+        import random
+        r, c = random.choice(unknowns)
+        self.selected = (r, c)
+        self.refresh_ui()
+        self.on_fire_pressed()
+
+
+    def on_special_pressed(self):
+        """Execute a 3x3 special shot centered on the selected cell.
+
+        Uses up one special from the current player's counter.
+        """
+        if self.input_locked:
+            return
+        s = self.app.state
+        turn = s.current_turn
+        # Check remaining specials
+        remaining = s.p1_specials if turn == 1 else s.p2_specials
+        if remaining <= 0:
+            self.result_lbl.config(text="NO SPECIALS")
+            return
+        if self.selected is None:
+            self.result_lbl.config(text="SELECT A CELL")
+            return
+
+        row, col = self.selected
+        # Choose attacker/defender structures based on current turn
+        if turn == 1:
+            attacker_shots = s.p1_shots
+            defender_incoming = s.p2_incoming
+            defender_ships = s.p2_ships
+            defender_hits = s.p2_hits
+            winner_num = 1
+        else:
+            attacker_shots = s.p2_shots
+            defender_incoming = s.p1_incoming
+            defender_ships = s.p1_ships
+            defender_hits = s.p1_hits
+            winner_num = 2
+
+        # Apply area shot
+        summary = fire_area_shot(attacker_shots, defender_incoming, defender_ships, defender_hits, row, col)
+
+        # consume a special
+        if turn == 1:
+            s.p1_specials -= 1
+        else:
+            s.p2_specials -= 1
+
+        hits = summary.get("hits", 0)
+        sinks = summary.get("sinks", 0)
+        misses = summary.get("misses", 0)
+
+        # Show aggregated result
+        self.result_lbl.config(text=f"H:{hits} S:{sinks} M:{misses}")
+
+        self.selected = None
+        self.refresh_ui()
+
+        # blackout/delay behavior (same as single shot)
+        if s.p2_ai_mode is None:
+            self._schedule_shot_blackout(1500, 1500)
+
+        # Check win condition
+        if ships_remaining(defender_ships, defender_hits) == 0:
+            self.input_locked = True
+            self.fire_btn.config(state="disabled")
+            self.result_lbl.config(text=f"PLAYER {winner_num} WINS!")
+
+            def go_to_win():
+                win_screen = self.app.screens["WinScreen"]
+                win_screen.set_winner(f"PLAYER {winner_num} WINS!")
+                win_screen.set_stats()
+                self.app.show_screen("WinScreen")
+
+            self._pending_after = self.after(1500, go_to_win)
+            return
+
+        # normal turn-switch
+        self.input_locked = True
+        self.fire_btn.config(state="disabled")
+        if s.p2_ai_mode is None:
+            self._pending_after = self.after(TURN_DELAY_MS, self._switch_turn)
+        else:
+            self._switch_turn()
 
     def on_fire_pressed(self):
         if self.input_locked:  # Block firing while locked (during delay)
@@ -852,6 +969,18 @@ class BattleScreen(tk.Frame):
                 f"Ship hits: {p2_ship_line}"
             )
         )
+
+        # Update special button label + enabled state for current player
+        try:
+            rem = s.p1_specials if s.current_turn == 1 else s.p2_specials
+            self.special_btn.config(text=f"SPECIAL ({rem})")
+            if rem > 0 and not self.input_locked:
+                self.special_btn.config(state="normal")
+            else:
+                self.special_btn.config(state="disabled")
+        except Exception:
+            # in case the widget isn't available (older UI state), ignore
+            pass
 
         # Highlight selected target cell (only if it's still UNKNOWN and input isn't locked)
         if self.selected is not None:

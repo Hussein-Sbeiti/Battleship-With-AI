@@ -62,6 +62,9 @@ class GameState:
     # hit coords on each player’s ships
     p1_hits: Set[Coord] = field(default_factory=set)
     p2_hits: Set[Coord] = field(default_factory=set)
+    # Special 3x3 shots remaining for each player (limited-use)
+    p1_specials: int = 3
+    p2_specials: int = 3
 
     def reset_for_new_game(self) -> None:
         """
@@ -95,3 +98,6 @@ class GameState:
         self.p2_ships = []
         self.p1_hits = set()
         self.p2_hits = set()
+        # Reset special-shot counters
+        self.p1_specials = 3
+        self.p2_specials = 3

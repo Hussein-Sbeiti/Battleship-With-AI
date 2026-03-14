@@ -201,6 +201,16 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
         self.orient_btn.config(state="normal")     # Allow toggling orientation again
 
         self.refresh_ui()                          # Redraw board + update status text
+        # Bind H/V keys while on placement screen to toggle orientation
+        try:
+            # bind both lower and upper case
+            self.app.bind_all("<Key-h>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-H>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-v>", lambda e: self.toggle_orientation())
+            self.app.bind_all("<Key-V>", lambda e: self.toggle_orientation())
+        except Exception:
+            pass
+
         super().tkraise(aboveThis)                 # Bring this screen to front
 
 
@@ -368,6 +378,15 @@ class PlacementScreen(tk.Frame):  # Screen 2: both players place ships before ba
         self._set_active(self.p1_buttons, active=False)
         self._set_active(self.p2_buttons, active=False)
 
+        # Unbind placement key handlers before switching away
+        try:
+            self.app.unbind_all("<Key-h>")
+            self.app.unbind_all("<Key-H>")
+            self.app.unbind_all("<Key-v>")
+            self.app.unbind_all("<Key-V>")
+        except Exception:
+            pass
+
         self.after(3000, lambda: self.app.show_screen("BattleScreen"))  # Wait 3 seconds, then switch
         return  # IMPORTANT: stop function here
     
@@ -490,6 +509,7 @@ class BattleScreen(tk.Frame):
 
         self.selected = None        # Stores selected target cell as (row, col)
         self.input_locked = False   # True while waiting during turn-delay / win-delay
+        self._special_armed = False # When True, next FIRE will perform a 3x3 special shot
 
         self._ai_targets: list[tuple[int,int]] = []
 
@@ -603,6 +623,7 @@ class BattleScreen(tk.Frame):
 
         # clear the AI hunting queue when a new battle begins
         self._ai_targets.clear()
+        self._special_armed = False
 
         self.refresh_ui()  # Re-render boards + scoreboard based on current GameState
         super().tkraise(aboveThis)  # Bring this screen to the front
@@ -677,83 +698,31 @@ class BattleScreen(tk.Frame):
 
 
     def on_special_pressed(self):
-        """Execute a 3x3 special shot centered on the selected cell.
+        """Arm or disarm the 3x3 special shot.
 
-        Uses up one special from the current player's counter.
+        When armed, the target board will show a 3x3 preview around the
+        selected cell. The next `FIRE` press will execute the special shot.
         """
         if self.input_locked:
             return
         s = self.app.state
         turn = s.current_turn
-        # Check remaining specials
         remaining = s.p1_specials if turn == 1 else s.p2_specials
         if remaining <= 0:
             self.result_lbl.config(text="NO SPECIALS")
             return
-        if self.selected is None:
-            self.result_lbl.config(text="SELECT A CELL")
-            return
 
-        row, col = self.selected
-        # Choose attacker/defender structures based on current turn
-        if turn == 1:
-            attacker_shots = s.p1_shots
-            defender_incoming = s.p2_incoming
-            defender_ships = s.p2_ships
-            defender_hits = s.p2_hits
-            winner_num = 1
+        # Toggle armed state; do NOT require a prior selection. User can
+        # press SPECIAL first, then click a cell to place the 3x3 preview.
+        if not self._special_armed:
+            self._special_armed = True
+            self.result_lbl.config(text="SPECIAL ARMED — select a cell")
         else:
-            attacker_shots = s.p2_shots
-            defender_incoming = s.p1_incoming
-            defender_ships = s.p1_ships
-            defender_hits = s.p1_hits
-            winner_num = 2
+            # disarm
+            self._special_armed = False
+            self.result_lbl.config(text="SPECIAL CANCELED")
 
-        # Apply area shot
-        summary = fire_area_shot(attacker_shots, defender_incoming, defender_ships, defender_hits, row, col)
-
-        # consume a special
-        if turn == 1:
-            s.p1_specials -= 1
-        else:
-            s.p2_specials -= 1
-
-        hits = summary.get("hits", 0)
-        sinks = summary.get("sinks", 0)
-        misses = summary.get("misses", 0)
-
-        # Show aggregated result
-        self.result_lbl.config(text=f"H:{hits} S:{sinks} M:{misses}")
-
-        self.selected = None
         self.refresh_ui()
-
-        # blackout/delay behavior (same as single shot)
-        if s.p2_ai_mode is None:
-            self._schedule_shot_blackout(1500, 1500)
-
-        # Check win condition
-        if ships_remaining(defender_ships, defender_hits) == 0:
-            self.input_locked = True
-            self.fire_btn.config(state="disabled")
-            self.result_lbl.config(text=f"PLAYER {winner_num} WINS!")
-
-            def go_to_win():
-                win_screen = self.app.screens["WinScreen"]
-                win_screen.set_winner(f"PLAYER {winner_num} WINS!")
-                win_screen.set_stats()
-                self.app.show_screen("WinScreen")
-
-            self._pending_after = self.after(1500, go_to_win)
-            return
-
-        # normal turn-switch
-        self.input_locked = True
-        self.fire_btn.config(state="disabled")
-        if s.p2_ai_mode is None:
-            self._pending_after = self.after(TURN_DELAY_MS, self._switch_turn)
-        else:
-            self._switch_turn()
 
     def on_fire_pressed(self):
         if self.input_locked:  # Block firing while locked (during delay)
@@ -766,6 +735,79 @@ class BattleScreen(tk.Frame):
         s = self.app.state  # Shortcut to shared GameState
         row, col = self.selected  # Target cell
         turn = s.current_turn  # Whose turn (1 or 2)
+
+        # If a special shot is armed, perform an area shot instead of single-shot
+        if self._special_armed:
+            # Ensure player has specials remaining
+            remaining = s.p1_specials if turn == 1 else s.p2_specials
+            if remaining <= 0:
+                self.result_lbl.config(text="NO SPECIALS")
+                self._special_armed = False
+                return None
+
+            # Choose attacker/defender structures based on current turn
+            if turn == 1:
+                attacker_shots = s.p1_shots
+                defender_incoming = s.p2_incoming
+                defender_ships = s.p2_ships
+                defender_hits = s.p2_hits
+                winner_num = 1
+            else:
+                attacker_shots = s.p2_shots
+                defender_incoming = s.p1_incoming
+                defender_ships = s.p1_ships
+                defender_hits = s.p1_hits
+                winner_num = 2
+
+            # Execute area shot
+            summary = fire_area_shot(attacker_shots, defender_incoming, defender_ships, defender_hits, row, col)
+
+            # consume a special
+            if turn == 1:
+                s.p1_specials -= 1
+            else:
+                s.p2_specials -= 1
+
+            hits = summary.get("hits", 0)
+            sinks = summary.get("sinks", 0)
+            misses = summary.get("misses", 0)
+
+            # Show aggregated result
+            self.result_lbl.config(text=f"H:{hits} S:{sinks} M:{misses}")
+
+            # reset special armed state
+            self._special_armed = False
+
+            self.selected = None
+            self.refresh_ui()
+
+            if s.p2_ai_mode is None:
+                self._schedule_shot_blackout(1500, 1500)
+
+            # Check win condition
+            if ships_remaining(defender_ships, defender_hits) == 0:
+                self.input_locked = True
+                self.fire_btn.config(state="disabled")
+                self.result_lbl.config(text=f"PLAYER {winner_num} WINS!")
+
+                def go_to_win():
+                    win_screen = self.app.screens["WinScreen"]
+                    win_screen.set_winner(f"PLAYER {winner_num} WINS!")
+                    win_screen.set_stats()
+                    self.app.show_screen("WinScreen")
+
+                self._pending_after = self.after(1500, go_to_win)
+                return "area"
+
+            # normal turn-switch after area shot
+            self.input_locked = True
+            self.fire_btn.config(state="disabled")
+            if s.p2_ai_mode is None:
+                self._pending_after = self.after(TURN_DELAY_MS, self._switch_turn)
+            else:
+                self._switch_turn()
+
+            return "area"
 
         # Choose attacker/defender structures based on current turn
         if turn == 1:
@@ -973,20 +1015,38 @@ class BattleScreen(tk.Frame):
         # Update special button label + enabled state for current player
         try:
             rem = s.p1_specials if s.current_turn == 1 else s.p2_specials
-            self.special_btn.config(text=f"SPECIAL ({rem})")
+            # show armed state in label when appropriate
+            if getattr(self, "_special_armed", False):
+                self.special_btn.config(text=f"SPECIAL (ARMED) ({rem})")
+            else:
+                self.special_btn.config(text=f"SPECIAL ({rem})")
             if rem > 0 and not self.input_locked:
                 self.special_btn.config(state="normal")
             else:
                 self.special_btn.config(state="disabled")
+            # disable random while special is armed to avoid conflicts
+            if getattr(self, "_special_armed", False):
+                self.random_btn.config(state="disabled")
+            else:
+                self.random_btn.config(state="normal")
         except Exception:
             # in case the widget isn't available (older UI state), ignore
             pass
 
-        # Highlight selected target cell (only if it's still UNKNOWN and input isn't locked)
-        if self.selected is not None:
+        # Highlight selected target cell (single cell) or 3x3 preview when special armed
+        if self.selected is not None and not self.input_locked:
             r, c = self.selected
-            if my_shots[r][c] == UNKNOWN and not self.input_locked:
-                self.target_cells[r][c].config(bg=HIGHLIGHT_BG)  # Yellow highlight
+            if getattr(self, "_special_armed", False):
+                # show 3x3 preview outline (only for UNKNOWN cells)
+                for dr in (-1, 0, 1):
+                    for dc in (-1, 0, 1):
+                        rr, cc = r + dr, c + dc
+                        if 0 <= rr < GRID_SIZE and 0 <= cc < GRID_SIZE:
+                            if my_shots[rr][cc] == UNKNOWN:
+                                self.target_cells[rr][cc].config(bg=HIGHLIGHT_BG)
+            else:
+                if my_shots[r][c] == UNKNOWN:
+                    self.target_cells[r][c].config(bg=HIGHLIGHT_BG)  # Yellow highlight
 
         # Disable or restore click bindings on target board depending on lock state
         if self.input_locked:

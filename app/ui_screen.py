@@ -162,6 +162,19 @@ class WelcomeScreen(tk.Frame):  # Screen 1: pick number of ships, then move to p
             command=lambda: self.on_ai_mode("medium"),
         ).pack(pady=(6, 0))
 
+        tk.Button(
+            inner,
+            text="AI Hard",
+            width=BUTTON_WIDTH,
+            font=BUTTON_FONT,
+            bg="#c0392b",
+            fg=BUTTON_FG,
+            activebackground="#c0392b",
+            activeforeground=BUTTON_FG,
+            relief="flat",
+            command=lambda: self.on_ai_mode("hard"),
+        ).pack(pady=(6, 0))
+
     def tkraise(self, aboveThis=None):
         self.refresh_wallpaper()
         super().tkraise(aboveThis)
@@ -1174,7 +1187,7 @@ class BattleScreen(tk.Frame):
 
         self._set_result("")  # Clear result message (HIT/MISS/SINK) for next player
         self.input_locked = False  # Re-enable input now that delay is over
-        self.awaiting_ai_turn = s.p2_ai_mode in ("easy", "medium") and s.current_turn == 2
+        self.awaiting_ai_turn = s.p2_ai_mode in ("easy", "medium", "hard") and s.current_turn == 2
         self.selected = None
 
         self.cell_font = ("Arial", 16, "bold")   # Normal cell font
@@ -1352,6 +1365,12 @@ class BattleScreen(tk.Frame):
         self._cancel_pending_after()
         self.awaiting_ai_turn = False
 
+        # Hard mode: pre-populate targets with all P1 ship coordinates on first turn
+        if mode == "hard" and not self._ai_targets:
+            for ship in s.p1_ships:
+                for coord in ship:
+                    self._ai_targets.append(coord)
+
         # helper to pop a valid target from queue
         def pop_target():
             while self._ai_targets:
@@ -1361,8 +1380,8 @@ class BattleScreen(tk.Frame):
             return None
 
         rcc = None
-        if mode == "medium":
-            rcc = pop_target()  # try hunting first
+        if mode in ("medium", "hard"):
+            rcc = pop_target()  # try hunting first (or ship targeting for hard mode)
         if rcc is None:
             # fall back to random unknown cell
             unknowns = [

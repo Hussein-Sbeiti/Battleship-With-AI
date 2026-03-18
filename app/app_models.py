@@ -42,7 +42,7 @@ class GameState:
     # Which players turn it is in the battle
     current_turn: int = 1
 
-    # which AI mode, if any, is controlling player 2: None, "easy", or "medium"
+    # which AI mode, if any, is controlling player 2: None, "easy", "medium", or "hard"
     p2_ai_mode: str | None = None
 
     # outgoing shots (what I shot at opponent)
